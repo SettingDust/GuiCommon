@@ -1,4 +1,4 @@
-package com.lalameow.guicommon.common.util;
+package com.lalameow.guicommon.util;
 
 import net.minecraftforge.fml.common.network.internal.FMLProxyPacket;
 

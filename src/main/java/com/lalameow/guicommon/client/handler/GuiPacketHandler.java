@@ -3,7 +3,7 @@ package com.lalameow.guicommon.client.handler;
 import com.google.gson.Gson;
 import com.lalameow.guicommon.GuiCommon;
 import com.lalameow.guicommon.client.network.packet.GuiPacket;
-import com.lalameow.guicommon.common.util.PacketUtils;
+import com.lalameow.guicommon.util.PacketUtils;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.fml.relauncher.Side;

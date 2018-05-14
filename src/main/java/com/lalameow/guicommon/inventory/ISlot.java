@@ -1,4 +1,4 @@
-package com.lalameow.guicommon.client.gui;
+package com.lalameow.guicommon.inventory;
 
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
@@ -22,8 +22,10 @@ public class ISlot extends Slot {
         this.enabled = enabled;
     }
 
+    protected void onSwapCraft(int stackSize) {
+    }
+
     @Override
-    @SideOnly(Side.CLIENT)
     public boolean isEnabled() {
         return enabled;
     }
