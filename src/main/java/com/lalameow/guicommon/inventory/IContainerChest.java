@@ -1,6 +1,7 @@
 package com.lalameow.guicommon.inventory;
 
 import com.google.common.collect.Sets;
+import com.lalameow.guicommon.client.network.packet.GuiPacket;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.*;
@@ -13,8 +14,6 @@ import java.util.Set;
  * Date: 2018/5/14.
  */
 public class IContainerChest extends ContainerChest {
-
-    private boolean[] enableSlots;
     /**
      * The current drag mode (0 : evenly split, 1 : one item by slot, 2 : not used ?)
      */
@@ -27,15 +26,18 @@ public class IContainerChest extends ContainerChest {
      * The list of slots where the itemstack holds will be distributed
      */
     private final Set<Slot> dragSlots = Sets.<Slot>newHashSet();
+    private GuiPacket guiPacket;
+    private boolean[] enableSlots;
 
-    public IContainerChest(IInventory playerInventory, IInventory chestInventory, EntityPlayer player, int[] enableIndex) {
+    public IContainerChest(IInventory playerInventory, IInventory chestInventory, EntityPlayer player, GuiPacket guiPacket) {
         super(playerInventory, chestInventory, player);
-        enableSlots = new boolean[chestInventory.getSizeInventory()];
-        for (int index : enableIndex) {
-            enableSlots[index] = true;
+        this.guiPacket = guiPacket;
+
+        enableSlots = new boolean[inventorySlots.size()];
+        for (SlotEntity slotEntity : guiPacket.getSlotEntities()) {
+            enableSlots[slotEntity.getLocation().toSlot()] = true;
         }
     }
-
 
     public ItemStack slotClick(int slotId, int dragType, ClickType clickTypeIn, EntityPlayer player) {
         ItemStack itemstack = ItemStack.EMPTY;
@@ -297,7 +299,6 @@ public class IContainerChest extends ContainerChest {
 
         return itemstack;
     }
-
 
     private ISlot convertSlot(int index) {
         ISlot iSlot = null;

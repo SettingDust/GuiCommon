@@ -1,20 +1,21 @@
 package com.lalameow.guicommon.client.network.packet;
 
+import com.lalameow.guicommon.client.texture.TextureEntity;
+import com.lalameow.guicommon.inventory.SlotEntity;
+
 /**
  * Author: SettingDust.
  * Date: 2018/5/12.
  */
 public class GuiPacket {
     private String title;
-    private String texture;
-    private int row;
-    private int[] enableIndex;
+    private TextureEntity texture;
+    private SlotEntity[] slotEntities;
 
-    public GuiPacket(String title, String texture, int row, int[] enableIndex) {
+    public GuiPacket(String title, TextureEntity texture, SlotEntity[] slotEntities) {
         this.title = title;
         this.texture = texture;
-        this.row = row;
-        this.enableIndex = enableIndex;
+        this.slotEntities = slotEntities;
     }
 
     public String getTitle() {
@@ -25,28 +26,20 @@ public class GuiPacket {
         this.title = title;
     }
 
-    public String getTexture() {
+    public TextureEntity getTexture() {
         return texture;
     }
 
-    public void setTexture(String texture) {
+    public void setTexture(TextureEntity texture) {
         this.texture = texture;
     }
 
-    public int getRow() {
-        return row;
+    public SlotEntity[] getSlotEntities() {
+        return slotEntities;
     }
 
-    public void setRow(int row) {
-        this.row = row;
-    }
-
-    public int[] getEnableIndex() {
-        return enableIndex;
-    }
-
-    public void setEnableIndex(int[] enableIndex) {
-        this.enableIndex = enableIndex;
+    public void setSlotEntities(SlotEntity[] slotEntities) {
+        this.slotEntities = slotEntities;
     }
 }
 

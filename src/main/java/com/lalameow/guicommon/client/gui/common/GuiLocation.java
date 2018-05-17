@@ -13,11 +13,9 @@ public class GuiLocation {
         this.y = y > 0 ? y : 1;
     }
 
-    public int getSlot() {
-        int slot = 0;
-        slot += x - 1;
-        slot += (y - 1) * 6;
-        return slot;
+    public GuiLocation(int slot) {
+        this.x = (slot + 1) % 9;
+        this.y = (slot + 1) / 9;
     }
 
     public static GuiLocation valueOf(int slot) {
@@ -42,5 +40,12 @@ public class GuiLocation {
 
     public void setY(int y) {
         this.y = y;
+    }
+
+    public int toSlot() {
+        int slot = 0;
+        slot += x - 1;
+        slot += (y - 1) * 6;
+        return slot;
     }
 }

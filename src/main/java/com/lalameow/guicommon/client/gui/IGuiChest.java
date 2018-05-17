@@ -1,7 +1,11 @@
 package com.lalameow.guicommon.client.gui;
 
+import com.google.common.base.Strings;
+import com.lalameow.guicommon.client.network.packet.GuiPacket;
+import com.lalameow.guicommon.client.texture.TextureEntity;
 import com.lalameow.guicommon.inventory.IContainerChest;
 import com.lalameow.guicommon.inventory.ISlot;
+import com.lalameow.guicommon.inventory.SlotEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiLabel;
@@ -32,8 +36,7 @@ public class IGuiChest extends GuiContainer {
     /**
      * The ResourceLocation containing the chest GUI texture.
      */
-   // private static final ResourceLocation ICHEST_GUI_TEXTURE = new ResourceLocation("guicommon", "textures/gui/container/skin.png");
-    private static final ResourceLocation ICHEST_GUI_TEXTURE = new ResourceLocation("textures/gui/container/generic_54.png");
+    private static ResourceLocation ICHEST_GUI_TEXTURE = new ResourceLocation("textures/gui/container/generic_54.png");
     private final IInventory upperChestInventory;
     /**
      * The chest's inventory. Number of slots will vary based off of the type of chest.
@@ -45,10 +48,6 @@ public class IGuiChest extends GuiContainer {
     private boolean[] enableSlots;
     private final int inventoryRows;
 
-    /**
-     * holds the slot currently hovered
-     */
-    private Slot hoveredSlot;
     /**
      * Used when touchscreen is enabled.
      */
@@ -69,28 +68,30 @@ public class IGuiChest extends GuiContainer {
      * Used when touchscreen is enabled
      */
     private ItemStack returningStack = ItemStack.EMPTY;
-    private Slot currentDragTargetSlot;
-    private long dragItemDropDelay;
+    private GuiPacket guiPacket;
+    private boolean[] canFire;
     private int dragSplittingLimit;
-    private int dragSplittingButton;
-    private boolean ignoreMouseUp;
     private int dragSplittingRemnant;
-    private long lastClickTime;
-    private Slot lastClickSlot;
-    private int lastClickButton;
-    private boolean doubleClick;
-    private ItemStack shiftClickedSlot = ItemStack.EMPTY;
 
-    public IGuiChest(IInventory upperInv, IInventory lowerInv, int[] enableIndex) {
-        super(new IContainerChest(upperInv, lowerInv, Minecraft.getMinecraft().player, enableIndex));
+    public IGuiChest(IInventory upperInv, IInventory lowerInv, GuiPacket guiPacket) {
+        super(new IContainerChest(upperInv, lowerInv, Minecraft.getMinecraft().player, guiPacket));
         this.upperChestInventory = upperInv;
         this.lowerChestInventory = lowerInv;
         this.allowUserInput = false;
         this.inventoryRows = lowerInv.getSizeInventory() / 9;
         this.ySize = 114 + this.inventoryRows * 18;
-        this.enableSlots = new boolean[lowerInv.getSizeInventory()];
-        for (int index : enableIndex) {
-            enableSlots[index] = true;
+        this.guiPacket = guiPacket;
+        if (!guiPacket.getTexture().isEmpty()) {
+            ICHEST_GUI_TEXTURE = new ResourceLocation("guicommon", guiPacket.getTexture().getPath());
+        }
+        enableSlots = new boolean[inventorySlots.inventorySlots.size()];
+        for (SlotEntity slotEntity : guiPacket.getSlotEntities()) {
+            enableSlots[slotEntity.getLocation().toSlot()] = true;
+        }
+        canFire = new boolean[inventorySlots.inventorySlots.size()];
+        for (SlotEntity slotEntity : guiPacket.getSlotEntities()) {
+            if (slotEntity.isCanFire())
+                canFire[slotEntity.getLocation().toSlot()] = true;
         }
     }
 
@@ -125,7 +126,6 @@ public class IGuiChest extends GuiContainer {
         GlStateManager.translate((float) i, (float) j, 0.0F);
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.enableRescaleNormal();
-        this.hoveredSlot = null;
         int k = 240;
         int l = 240;
         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
@@ -133,11 +133,11 @@ public class IGuiChest extends GuiContainer {
 
         for (int i1 = 0; i1 < this.inventorySlots.inventorySlots.size(); ++i1) {
             ISlot slot = convertSlot(i1);
+            //ISlot slot = new ISlot(this.inventorySlots.inventorySlots.get(i1),true);
             if (slot.isEnabled()) {
                 this.drawSlot(slot);
             }
-            if (this.isMouseOverSlot(slot, mouseX, mouseY) && slot.isEnabled()) {
-                this.hoveredSlot = slot;
+            if (this.isMouseOverSlot(slot, mouseX, mouseY) && slot.isEnabled() && canFire[slot.getSlotIndex()]) {
                 GlStateManager.disableLighting();
                 GlStateManager.disableDepth();
                 int j1 = slot.xPos;
@@ -212,6 +212,21 @@ public class IGuiChest extends GuiContainer {
     private void drawSlot(ISlot slotIn) {
         int i = slotIn.xPos;
         int j = slotIn.yPos;
+        for (SlotEntity slotEntity : guiPacket.getSlotEntities()) {
+            if (slotEntity.getLocation().toSlot() == slotIn.getSlotIndex()
+                    && !slotEntity.getTexture().isEmpty()) {
+                TextureEntity textureEntity = slotEntity.getTexture();
+                drawScaledCustomSizeModalRect(i, j,
+                        textureEntity.getU(),
+                        textureEntity.getV(),
+                        textureEntity.getWidth(),
+                        textureEntity.getHeight(),
+                        16, 16,
+                        textureEntity.getWidth(),
+                        textureEntity.getHeight()
+                );
+            }
+        }
         ItemStack itemstack = slotIn.getStack();
         boolean flag = false;
         boolean flag1 = slotIn == this.clickedSlot && !this.draggedStack.isEmpty() && !this.isRightMouseClick;
@@ -320,7 +335,7 @@ public class IGuiChest extends GuiContainer {
     /**
      * Returns whether the mouse is over the given slot.
      */
-    private boolean isMouseOverSlot(Slot slotIn, int mouseX, int mouseY) {
+    private boolean isMouseOverSlot(ISlot slotIn, int mouseX, int mouseY) {
         return this.isPointInRegion(slotIn.xPos, slotIn.yPos, 16, 16, mouseX, mouseY);
     }
 
