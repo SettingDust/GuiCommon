@@ -1,7 +1,7 @@
 package com.lalameow.guicommon.client.gui;
 
+import com.google.common.collect.Ordering;
 import com.lalameow.guicommon.client.network.packet.GuiPacket;
-import com.lalameow.guicommon.client.texture.TextureEntity;
 import com.lalameow.guicommon.inventory.IContainerChest;
 import com.lalameow.guicommon.inventory.ISlot;
 import com.lalameow.guicommon.inventory.SlotEntity;
@@ -13,14 +13,21 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.inventory.*;
+import net.minecraft.inventory.Container;
+import net.minecraft.inventory.IInventory;
+import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.potion.Potion;
+import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+
+import java.util.Collection;
 
 /**
  * Author: SettingDust.
@@ -87,9 +94,10 @@ public class IGuiChest extends GuiContainer {
         for (SlotEntity slotEntity : guiPacket.getSlotEntities()) {
             enableSlots[slotEntity.getLocation().toSlot()] = true;
         }
-        canFire = new boolean[inventorySlots.inventorySlots.size()];
+        canFire = new boolean[lowerChestInventory.getSizeInventory()];
         for (SlotEntity slotEntity : guiPacket.getSlotEntities()) {
-            if (slotEntity.isCanFire())
+            if (slotEntity.getLocation().toSlot() < lowerChestInventory.getSizeInventory()
+                    && slotEntity.isCanFire())
                 canFire[slotEntity.getLocation().toSlot()] = true;
         }
     }
@@ -101,6 +109,7 @@ public class IGuiChest extends GuiContainer {
         this.drawDefaultBackground();
         this.drawContainer(mouseX, mouseY, partialTicks);
         this.renderHoveredToolTip(mouseX, mouseY);
+        this.drawActivePotionEffects();
     }
 
     private void drawContainer(int mouseX, int mouseY, float partialTicks) {
@@ -126,14 +135,12 @@ public class IGuiChest extends GuiContainer {
         GlStateManager.translate((float) i, (float) j, 0.0F);
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.enableRescaleNormal();
-        int k = 240;
-        int l = 240;
         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         for (int i1 = 0; i1 < this.inventorySlots.inventorySlots.size(); ++i1) {
             ISlot slot = convertSlot(i1);
             if (slot.isEnabled()) {
-                this.drawSlot(slot, i1);
+                this.drawSlot(slot);
             }
             if (this.isMouseOverSlot(slot, mouseX, mouseY) && slot.isEnabled()) {
                 GlStateManager.disableLighting();
@@ -141,7 +148,7 @@ public class IGuiChest extends GuiContainer {
                 this.hoveredSlot = slot;
                 int j1 = slot.xPos;
                 int k1 = slot.yPos;
-                if (canFire[i1]) {
+                if (i1 >= lowerChestInventory.getSizeInventory() || canFire[i1]) {
                     GlStateManager.colorMask(true, true, true, false);
                     this.drawGradientRect(j1, k1, j1 + 16, k1 + 16, -2130706433, -2130706433);
                     GlStateManager.colorMask(true, true, true, true);
@@ -157,7 +164,6 @@ public class IGuiChest extends GuiContainer {
         InventoryPlayer inventoryplayer = this.mc.player.inventory;
         ItemStack itemstack = this.draggedStack.isEmpty() ? inventoryplayer.getItemStack() : this.draggedStack;
         if (!itemstack.isEmpty()) {
-            int j2 = 8;
             int k2 = this.draggedStack.isEmpty() ? 8 : 16;
             String s = null;
 
@@ -188,7 +194,7 @@ public class IGuiChest extends GuiContainer {
             int i3 = this.returningStackDestSlot.yPos - this.touchUpY;
             int l1 = this.touchUpX + (int) ((float) l2 * f);
             int i2 = this.touchUpY + (int) ((float) i3 * f);
-            this.drawItemStack(this.returningStack, l1, i2, (String) null);
+            this.drawItemStack(this.returningStack, l1, i2, null);
         }
 
         GlStateManager.popMatrix();
@@ -211,26 +217,26 @@ public class IGuiChest extends GuiContainer {
     /**
      * Draws the given slot: any item in it, the slot's background, the hovered highlight, etc.
      */
-    private void drawSlot(ISlot slotIn, int i1) {
+    private void drawSlot(ISlot slotIn) {
         int i = slotIn.xPos;
         int j = slotIn.yPos;
-        for (SlotEntity slotEntity : guiPacket.getSlotEntities()) {
-            if (slotEntity.getLocation().toSlot() == i1
-                    && !slotEntity.getTexture().isEmpty()) {
-                TextureEntity textureEntity = slotEntity.getTexture();
-                mc.getTextureManager().bindTexture(new ResourceLocation("guicommon", "textures/gui/container/" + textureEntity.getPath()));
-                GlStateManager.enableBlend();
-                GlStateManager.enableAlpha();
-                GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-                drawScaledCustomSizeModalRect(i, j,
-                        textureEntity.getU(),
-                        textureEntity.getV(),
-                        textureEntity.getWidth() == 0 ? 16 : textureEntity.getWidth(),
-                        textureEntity.getHeight() == 0 ? 16 : textureEntity.getHeight(),
-                        16, 16, 16, 16
-                );
-            }
-        }
+//        for (SlotEntity slotEntity : guiPacket.getSlotEntities()) {
+//            if (slotEntity.getLocation().toSlot() == i1
+//                    && !slotEntity.getTexture().isEmpty()) {
+//                TextureEntity textureEntity = slotEntity.getTexture();
+//                mc.getTextureManager().bindTexture(new ResourceLocation("guicommon", "textures/gui/container/" + textureEntity.getPath()));
+//                GlStateManager.enableBlend();
+//                GlStateManager.enableAlpha();
+//                GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+//                drawScaledCustomSizeModalRect(i, j,
+//                        textureEntity.getU(),
+//                        textureEntity.getV(),
+//                        textureEntity.getWidth() == 0 ? 16 : textureEntity.getWidth(),
+//                        textureEntity.getHeight() == 0 ? 16 : textureEntity.getHeight(),
+//                        16, 16, 16, 16
+//                );
+//            }
+//        }
         ItemStack itemstack = slotIn.getStack();
         boolean flag = false;
         boolean flag1 = slotIn == this.clickedSlot && !this.draggedStack.isEmpty() && !this.isRightMouseClick;
@@ -366,4 +372,59 @@ public class IGuiChest extends GuiContainer {
         }
     }
 
+    /**
+     * Display the potion effects list
+     */
+    private void drawActivePotionEffects() {
+        int i = this.guiLeft - 124;
+        int j = this.guiTop;
+        Collection<PotionEffect> collection = this.mc.player.getActivePotionEffects();
+
+        if (!collection.isEmpty()) {
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+            GlStateManager.disableLighting();
+            int l = 33;
+
+            if (collection.size() > 5) {
+                l = 132 / (collection.size() - 1);
+            }
+
+            for (PotionEffect potioneffect : Ordering.natural().sortedCopy(collection)) {
+                Potion potion = potioneffect.getPotion();
+                if (!potion.shouldRender(potioneffect)) continue;
+                GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+                this.mc.getTextureManager().bindTexture(INVENTORY_BACKGROUND);
+                this.drawTexturedModalRect(i, j, 0, 166, 140, 32);
+
+                if (potion.hasStatusIcon()) {
+                    int i1 = potion.getStatusIconIndex();
+                    this.drawTexturedModalRect(
+                            i + 6, j + 7,
+                            i1 % 8 * 18,
+                            198 + i1 / 8 * 18,
+                            18, 18);
+                }
+
+                potion.renderInventoryEffect(i, j, potioneffect, mc);
+                if (!potion.shouldRenderInvText(potioneffect)) {
+                    j += l;
+                    continue;
+                }
+                String s1 = I18n.format(potion.getName());
+
+                if (potioneffect.getAmplifier() == 1) {
+                    s1 = s1 + " " + I18n.format("enchantment.level.2");
+                } else if (potioneffect.getAmplifier() == 2) {
+                    s1 = s1 + " " + I18n.format("enchantment.level.3");
+                } else if (potioneffect.getAmplifier() == 3) {
+                    s1 = s1 + " " + I18n.format("enchantment.level.4");
+                }
+
+                this.fontRenderer.drawStringWithShadow(s1, (float) (i + 10 + 18), (float) (j + 6), 16777215);
+                String s = Potion.getPotionDurationString(potioneffect, 1.0F);
+                this.fontRenderer.drawStringWithShadow(s, (float) (i + 10 + 18), (float) (j + 6 + 10), 8355711);
+                j += l;
+            }
+        }
+    }
 }

@@ -2,14 +2,12 @@ package com.lalameow.guicommon.client.handler;
 
 import com.google.gson.Gson;
 import com.lalameow.guicommon.GuiCommon;
-import com.lalameow.guicommon.client.network.packet.GuiPacket;
 import com.lalameow.guicommon.util.PacketUtils;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import java.io.IOException;
 import java.util.HashMap;
 
 /**
@@ -19,12 +17,12 @@ import java.util.HashMap;
 @SideOnly(Side.CLIENT)
 public class GuiPacketHandler {
     @SubscribeEvent
-    public void guiPacket(FMLNetworkEvent.ClientCustomPacketEvent event) throws IOException {
+    public void guiPacket(FMLNetworkEvent.ClientCustomPacketEvent event) {
         if (event.getPacket().channel().equals(GuiCommon.getGuiChannel())) {
             try {
                 String json = PacketUtils.getPacket(event.getPacket());
                 Gson gson = new Gson();
-                HashMap<String, String> guiPackets = gson.fromJson(json, HashMap.class);
+                HashMap guiPackets = gson.fromJson(json, HashMap.class);
                 GuiCommon.proxy.setGuiPackets(guiPackets);
             } catch (Exception e) {
                 e.printStackTrace();

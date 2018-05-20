@@ -14,20 +14,20 @@ import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.client.event.GuiContainerEvent;
 import net.minecraftforge.client.event.GuiOpenEvent;
-import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.internal.FMLProxyPacket;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.lang.reflect.Field;
+import java.util.List;
 
 /**
  * Author: SettingDust.
@@ -66,6 +66,42 @@ public class GuiHandler {
             FMLProxyPacket packet = new FMLProxyPacket(new PacketBuffer(buf), GuiCommon.getGuiChannel()); // 数据包
             GuiCommon.proxy.getGuiChannel().sendToServer(packet);
             event.setCanceled(true);
+        }
+
+    }
+
+    @SubscribeEvent
+    public void onRender(GuiContainerEvent.DrawForeground event) {
+        if (!Minecraft.getMinecraft().playerController.isInCreativeMode()) {
+            GuiContainer gui = event.getGuiContainer();
+            List<Slot> slots = gui.inventorySlots.inventorySlots;
+            GuiPacket guiPacket = new Gson().fromJson(new Gson().toJson(GuiCommon.proxy.getGuiPackets().get("PlayerInventory")), GuiPacket.class);
+            SlotEntity[] slotEntities = guiPacket.getSlotEntities();
+
+            for (Slot slot : slots) {
+                if (!(slot.inventory instanceof InventoryPlayer)) continue;
+                for (SlotEntity slotEntity : slotEntities) {
+                    if (slotEntity.getLocation().toSlot() == slot.getSlotIndex()) {
+                        TextureEntity textureEntity = slotEntity.getTexture();
+                        if (!textureEntity.isEmpty()) {
+                            Minecraft.getMinecraft().getTextureManager().bindTexture(new ResourceLocation("guicommon", "textures/gui/container/" + textureEntity.getPath()));
+                            GlStateManager.enableBlend();
+                            GlStateManager.enableAlpha();
+                            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+                            Gui.drawScaledCustomSizeModalRect(
+                                    slot.xPos,
+                                    slot.yPos,
+                                    textureEntity.getU(),
+                                    textureEntity.getV(),
+                                    textureEntity.getWidth() == 0 ? 16 : textureEntity.getWidth(),
+                                    textureEntity.getHeight() == 0 ? 16 : textureEntity.getHeight(),
+                                    16, 16, 16, 16
+                            );
+                        }
+                        break;
+                    }
+                }
+            }
         }
     }
 }
