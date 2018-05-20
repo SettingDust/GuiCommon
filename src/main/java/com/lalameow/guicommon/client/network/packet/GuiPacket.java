@@ -8,22 +8,12 @@ import com.lalameow.guicommon.inventory.SlotEntity;
  * Date: 2018/5/12.
  */
 public class GuiPacket {
-    private String title;
     private TextureEntity texture;
     private SlotEntity[] slotEntities;
 
-    public GuiPacket(String title, TextureEntity texture, SlotEntity[] slotEntities) {
-        this.title = title;
+    public GuiPacket(TextureEntity texture, SlotEntity[] slotEntities) {
         this.texture = texture;
         this.slotEntities = slotEntities;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
     }
 
     public TextureEntity getTexture() {

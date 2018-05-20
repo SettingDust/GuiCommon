@@ -1,6 +1,7 @@
 package com.lalameow.guicommon.inventory;
 
 import com.google.common.collect.Sets;
+import com.lalameow.guicommon.client.gui.common.GuiLocation;
 import com.lalameow.guicommon.client.network.packet.GuiPacket;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -25,7 +26,7 @@ public class IContainerChest extends ContainerChest {
     /**
      * The list of slots where the itemstack holds will be distributed
      */
-    private final Set<Slot> dragSlots = Sets.<Slot>newHashSet();
+    private final Set<Slot> dragSlots = Sets.newHashSet();
     private GuiPacket guiPacket;
     private boolean[] enableSlots;
 

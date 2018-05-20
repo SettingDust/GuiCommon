@@ -1,6 +1,5 @@
 package com.lalameow.guicommon.client.gui;
 
-import com.google.common.base.Strings;
 import com.lalameow.guicommon.client.network.packet.GuiPacket;
 import com.lalameow.guicommon.client.texture.TextureEntity;
 import com.lalameow.guicommon.inventory.IContainerChest;
@@ -9,7 +8,6 @@ import com.lalameow.guicommon.inventory.SlotEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiLabel;
-import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -23,9 +21,6 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import org.lwjgl.input.Keyboard;
-
-import java.io.IOException;
 
 /**
  * Author: SettingDust.
@@ -48,6 +43,10 @@ public class IGuiChest extends GuiContainer {
     private boolean[] enableSlots;
     private final int inventoryRows;
 
+    /**
+     * holds the slot currently hovered
+     */
+    private Slot hoveredSlot;
     /**
      * Used when touchscreen is enabled.
      */
@@ -82,7 +81,7 @@ public class IGuiChest extends GuiContainer {
         this.ySize = 114 + this.inventoryRows * 18;
         this.guiPacket = guiPacket;
         if (!guiPacket.getTexture().isEmpty()) {
-            ICHEST_GUI_TEXTURE = new ResourceLocation("guicommon", guiPacket.getTexture().getPath());
+            ICHEST_GUI_TEXTURE = new ResourceLocation("guicommon", "textures/gui/container/" + guiPacket.getTexture().getPath());
         }
         enableSlots = new boolean[inventorySlots.inventorySlots.size()];
         for (SlotEntity slotEntity : guiPacket.getSlotEntities()) {
@@ -107,6 +106,7 @@ public class IGuiChest extends GuiContainer {
     private void drawContainer(int mouseX, int mouseY, float partialTicks) {
         int i = this.guiLeft;
         int j = this.guiTop;
+        this.hoveredSlot = null;
         this.drawGuiContainerBackgroundLayer(partialTicks, mouseX, mouseY);
         GlStateManager.disableRescaleNormal();
         RenderHelper.disableStandardItemLighting();
@@ -130,23 +130,24 @@ public class IGuiChest extends GuiContainer {
         int l = 240;
         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-
         for (int i1 = 0; i1 < this.inventorySlots.inventorySlots.size(); ++i1) {
             ISlot slot = convertSlot(i1);
-            //ISlot slot = new ISlot(this.inventorySlots.inventorySlots.get(i1),true);
             if (slot.isEnabled()) {
-                this.drawSlot(slot);
+                this.drawSlot(slot, i1);
             }
-            if (this.isMouseOverSlot(slot, mouseX, mouseY) && slot.isEnabled() && canFire[slot.getSlotIndex()]) {
+            if (this.isMouseOverSlot(slot, mouseX, mouseY) && slot.isEnabled()) {
                 GlStateManager.disableLighting();
                 GlStateManager.disableDepth();
+                this.hoveredSlot = slot;
                 int j1 = slot.xPos;
                 int k1 = slot.yPos;
-                GlStateManager.colorMask(true, true, true, false);
-                this.drawGradientRect(j1, k1, j1 + 16, k1 + 16, -2130706433, -2130706433);
-                GlStateManager.colorMask(true, true, true, true);
-                GlStateManager.enableLighting();
-                GlStateManager.enableDepth();
+                if (canFire[i1]) {
+                    GlStateManager.colorMask(true, true, true, false);
+                    this.drawGradientRect(j1, k1, j1 + 16, k1 + 16, -2130706433, -2130706433);
+                    GlStateManager.colorMask(true, true, true, true);
+                    GlStateManager.enableLighting();
+                    GlStateManager.enableDepth();
+                }
             }
         }
         RenderHelper.disableStandardItemLighting();
@@ -194,6 +195,7 @@ public class IGuiChest extends GuiContainer {
         GlStateManager.enableLighting();
         GlStateManager.enableDepth();
         RenderHelper.enableStandardItemLighting();
+        this.renderHoveredToolTip(mouseX, mouseY);
     }
 
     private ISlot convertSlot(int index) {
@@ -209,21 +211,23 @@ public class IGuiChest extends GuiContainer {
     /**
      * Draws the given slot: any item in it, the slot's background, the hovered highlight, etc.
      */
-    private void drawSlot(ISlot slotIn) {
+    private void drawSlot(ISlot slotIn, int i1) {
         int i = slotIn.xPos;
         int j = slotIn.yPos;
         for (SlotEntity slotEntity : guiPacket.getSlotEntities()) {
-            if (slotEntity.getLocation().toSlot() == slotIn.getSlotIndex()
+            if (slotEntity.getLocation().toSlot() == i1
                     && !slotEntity.getTexture().isEmpty()) {
                 TextureEntity textureEntity = slotEntity.getTexture();
+                mc.getTextureManager().bindTexture(new ResourceLocation("guicommon", "textures/gui/container/" + textureEntity.getPath()));
+                GlStateManager.enableBlend();
+                GlStateManager.enableAlpha();
+                GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
                 drawScaledCustomSizeModalRect(i, j,
                         textureEntity.getU(),
                         textureEntity.getV(),
-                        textureEntity.getWidth(),
-                        textureEntity.getHeight(),
-                        16, 16,
-                        textureEntity.getWidth(),
-                        textureEntity.getHeight()
+                        textureEntity.getWidth() == 0 ? 16 : textureEntity.getWidth(),
+                        textureEntity.getHeight() == 0 ? 16 : textureEntity.getHeight(),
+                        16, 16, 16, 16
                 );
             }
         }
@@ -355,4 +359,11 @@ public class IGuiChest extends GuiContainer {
         this.zLevel = 0.0F;
         this.itemRender.zLevel = 0.0F;
     }
+
+    protected void renderHoveredToolTip(int p_191948_1_, int p_191948_2_) {
+        if (this.mc.player.inventory.getItemStack().isEmpty() && this.hoveredSlot != null && this.hoveredSlot.getHasStack()) {
+            this.renderToolTip(this.hoveredSlot.getStack(), p_191948_1_, p_191948_2_);
+        }
+    }
+
 }

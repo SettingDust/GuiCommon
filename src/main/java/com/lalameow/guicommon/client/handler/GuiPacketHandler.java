@@ -10,6 +10,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 /**
  * Author: SettingDust.
@@ -23,7 +24,7 @@ public class GuiPacketHandler {
             try {
                 String json = PacketUtils.getPacket(event.getPacket());
                 Gson gson = new Gson();
-                GuiPacket[] guiPackets = gson.fromJson(json, GuiPacket[].class);
+                HashMap<String, String> guiPackets = gson.fromJson(json, HashMap.class);
                 GuiCommon.proxy.setGuiPackets(guiPackets);
             } catch (Exception e) {
                 e.printStackTrace();
